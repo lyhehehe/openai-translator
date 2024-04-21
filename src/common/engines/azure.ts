@@ -34,7 +34,7 @@ export class Azure extends AbstractOpenAI {
         const body = await super.getBaseRequestBody()
         return {
             ...body,
-            max_tokens: settings.azureMaxTokens,
+            max_tokens: settings.azMaxWords,
         }
     }
 

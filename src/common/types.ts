@@ -61,7 +61,7 @@ export interface ISettings {
     azureAPIURL: string
     azureAPIURLPath: string
     azureAPIModel: string
-    azureMaxTokens: number
+    azMaxWords: number
     enableMica: boolean
     miniMaxGroupID: string
     miniMaxAPIKey: string
