@@ -55,6 +55,14 @@ export abstract class AbstractOpenAI extends AbstractEngine {
         const settings = await getSettings()
         if (settings.noModelsAPISupport) {
             return [
+                { name: 'gpt-5.6', id: 'gpt-5.6' },
+                { name: 'gpt-5.1', id: 'gpt-5.1' },
+                { name: 'gpt-5', id: 'gpt-5' },
+                { name: 'gpt-5-mini (recommended)', id: 'gpt-5-mini' },
+                { name: 'gpt-5-nano', id: 'gpt-5-nano' },
+                { name: 'gpt-4.1', id: 'gpt-4.1' },
+                { name: 'gpt-4.1-mini', id: 'gpt-4.1-mini' },
+                { name: 'gpt-4o-mini', id: 'gpt-4o-mini' },
                 { name: 'gpt-3.5-turbo-1106', id: 'gpt-3.5-turbo-1106' },
                 { name: 'gpt-3.5-turbo', id: 'gpt-3.5-turbo' },
                 { name: 'gpt-3.5-turbo-0613', id: 'gpt-3.5-turbo-0613' },
@@ -62,7 +70,7 @@ export abstract class AbstractOpenAI extends AbstractEngine {
                 { name: 'gpt-3.5-turbo-16k', id: 'gpt-3.5-turbo-16k' },
                 { name: 'gpt-3.5-turbo-16k-0613', id: 'gpt-3.5-turbo-16k-0613' },
                 { name: 'gpt-4', id: 'gpt-4' },
-                { name: 'gpt-4o (recommended)', id: 'gpt-4o' },
+                { name: 'gpt-4o', id: 'gpt-4o' },
                 { name: 'gpt-4-turbo', id: 'gpt-4-turbo' },
                 { name: 'gpt-4-turbo-2024-04-09', id: 'gpt-4-turbo-2024-04-09' },
                 { name: 'gpt-4-turbo-preview', id: 'gpt-4-turbo-preview' },
@@ -169,8 +177,11 @@ export abstract class AbstractOpenAI extends AbstractEngine {
             return { model, stream: true }
         }
 
-        // GPT-5 base/mini/nano models — use 'minimal' reasoning effort
-        if (/^gpt-5(\.0)?(-mini|-nano)?(\b|-)/.test(modelLower)) {
+        // Only the undotted gpt-5 series (gpt-5 / gpt-5-mini / gpt-5-nano,
+        // including dated suffixes) supports reasoning_effort 'minimal';
+        // dotted successors dropped it, so any gpt-5.x that slipped past the
+        // guards above must not receive it (#1853).
+        if (/^gpt-5(-mini|-nano)?(\b|-)/.test(modelLower) && !/^gpt-5\./.test(modelLower)) {
             return { model, stream: true, reasoning_effort: 'minimal' }
         }
 

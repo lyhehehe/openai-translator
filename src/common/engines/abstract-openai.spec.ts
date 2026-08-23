@@ -220,6 +220,64 @@ describe('AbstractOpenAI', () => {
         await engine.sendMessage(req)
     })
 
+    // Regression tests for #1853: reasoning_effort 'minimal' only exists on
+    // the undotted gpt-5 series; dotted successors (gpt-5.1, gpt-5.6, ...)
+    // must never receive it.
+    describe("reasoning_effort 'minimal' gating", () => {
+        it('sends minimal reasoning effort for GPT-5 nano via Responses API', async () => {
+            const engine = new TestOpenAIEngine('gpt-5-nano')
+            const { req } = createMessageRequest()
+
+            vi.mocked(fetchSSE).mockImplementationOnce(async (input: string, options: MockFetchSSEOptions) => {
+                expect(input).toBe('https://api.openai.com/v1/responses')
+                const payload = JSON.parse(options.body as string)
+                expect(payload.model).toBe('gpt-5-nano')
+                expect(payload.reasoning).toEqual({ effort: 'minimal' })
+
+                await options.onMessage(JSON.stringify({ type: 'response.completed', response: {} }))
+            })
+
+            await engine.sendMessage(req)
+            expect(vi.mocked(fetchSSE)).toHaveBeenCalled()
+        })
+
+        it.each(['gpt-5.6', 'gpt-5.10'])('does not send minimal reasoning effort for %s', async (model) => {
+            vi.mocked(getSettings).mockResolvedValueOnce({ thinkingEnabled: true } as never)
+            const engine = new TestOpenAIEngine(model)
+            const { req } = createMessageRequest()
+
+            vi.mocked(fetchSSE).mockImplementationOnce(async (input: string, options: MockFetchSSEOptions) => {
+                const payload = JSON.parse(options.body as string)
+                expect(payload.model).toBe(model)
+                expect(payload.reasoning_effort).toBeUndefined()
+                expect(payload.reasoning).toBeUndefined()
+
+                await options.onMessage(JSON.stringify({ type: 'response.completed', response: {} }))
+            })
+
+            await engine.sendMessage(req)
+            expect(vi.mocked(fetchSSE)).toHaveBeenCalled()
+        })
+
+        it('does not send minimal reasoning effort for gpt-5.0 either', async () => {
+            vi.mocked(getSettings).mockResolvedValueOnce({ thinkingEnabled: true } as never)
+            const engine = new TestOpenAIEngine('gpt-5.0')
+            const { req } = createMessageRequest()
+
+            vi.mocked(fetchSSE).mockImplementationOnce(async (input: string, options: MockFetchSSEOptions) => {
+                const payload = JSON.parse(options.body as string)
+                expect(payload.model).toBe('gpt-5.0')
+                expect(payload.reasoning_effort).toBeUndefined()
+                expect(payload.reasoning).toBeUndefined()
+
+                await options.onMessage(JSON.stringify({ type: 'response.completed', response: {} }))
+            })
+
+            await engine.sendMessage(req)
+            expect(vi.mocked(fetchSSE)).toHaveBeenCalled()
+        })
+    })
+
     describe('modelOverride', () => {
         it('should use modelOverride instead of getAPIModel when provided', async () => {
             const engine = new TestOpenAIEngine('gpt-4o')
